@@ -1,88 +1,100 @@
-import {useState } from "react";
-import app from "../../Firebase/FIrebase.config";
-import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
+import React, { useState } from 'react';
+import { createUserWithEmailAndPassword, getAuth, sendEmailVerification, updateProfile } from 'firebase/auth'
+import app from '../../firebase/firebase.config';
+import { Link } from 'react-router-dom';
 
 const auth = getAuth(app);
 
-
- 
 const Register = () => {
-    const [email,setEmail] = useState("")
-    const [password,setPassword] = useState("")
-    const [error,setError] = useState("")
-    const [success, setSuccess] = useState("") 
+    const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
 
-
- 
     const handleSubmit = (event) => {
+        // 1. prevent page refresh
         event.preventDefault();
         setSuccess('');
-        setError('')
-        const Email = event.target.email.value;
-        const Password = event.target.password.value
-          console.log(Email,Password)
-        //Validate
+        setError('');
+        // 2. collect form data
+        const email = event.target.email.value;
+        const password = event.target.password.value;
+        const name = event.target.name.value;
+        console.log(name, email, password)
 
-        if(!/(?=.*[A-Z])/.test(password)){
-             setError('Please add at least one uppercase')
-             return
+        // validate
+        if (!/(?=.*[A-Z])/.test(password)) {
+            setError('Please add at least one uppercase');
+            return;
         }
-        else if(!/(?=.*[0-9].*[0-9])/.test(password)){
-            setError('Please add two numbers at least');
+        else if (!/(?=.*[0-9].*[0-9])/.test(password)) {
+            setError('Please add at least two numbers');
             return
         }
-        else if( password.length < 6){
-            setError('Please add at least 6 characters in your password ');
-            return 
+        else if (password.length < 6) {
+            setError('Please add at least 6 characters in your password')
+            return;
         }
 
-        //   Create user in Firebase
-            createUserWithEmailAndPassword(auth,email,password)   
+        // 3. create user in fb
+        createUserWithEmailAndPassword(auth, email, password)
             .then(result => {
                 const loggedUser = result.user;
                 console.log(loggedUser);
-                setError("");
+                setError('');
                 event.target.reset();
-                setSuccess('User has been created successfully')
+                setSuccess('User has been created successfully');
+                sendVerificationEmail(result.user);
+                updateUserData(result.user, name);
             })
             .catch(error => {
                 console.error(error.message);
                 setError(error.message);
             })
+    }
 
+    const sendVerificationEmail = (user) => {
+        sendEmailVerification(user)
+            .then(result => {
+                console.log(result);
+                alert('Please verify your email address')
+            })
+    }
 
-        // createUserWithEmailAndPassword(auth,email,password)
-        // .then(result => {
-        //     const loggedUser = result.user
-        //     console.log(loggedUser);
-        // })
-        // .catch(error => {
-        //     console.error(error);
-        // })
+    const updateUserData = (user, name) => {
+        updateProfile(user, {
+            displayName: name
+        })
+            .then(() => {
+                console.log('user name updated')
+            })
+            .catch(error => {
+                setError(error.message);
+            })
     }
 
     const handleEmailChange = (event) => {
         // console.log(event.target.value);
-        // setEmail(event.target.value)
+        // setEmail(event.target.value);
     }
 
     const handlePasswordBlur = (event) => {
         // console.log(event.target.value);
-        // setPassword(event.target.value)
     }
 
     return (
-        <div className="w-50 mx-auto">
-                <h2>Please Register</h2>
-                <form onSubmit={handleSubmit} >
-                    <input className="w-50 mb-4 rounded ps-2 "  onChange={handleEmailChange} type="email" name="email" id="email" placeholder="Please Enter Your E-mail" required />
-                    <br />
-                    <input className="w-50 mb-4 rounded ps-2" onBlur={handlePasswordBlur} type="password" name="password" id="password" placeholder="Enter Your Password"  required/>
-                    <br />
-                    <p className="text-danger">{error}</p>
-                    <input className="btn btn-primary" type="submit" value="Register" />
-                </form>
-                <p className="text-success">{success}</p>
+        <div className='w-50 mx-auto'>
+            <h4>Please Register</h4>
+            <form onSubmit={handleSubmit}>
+                <input className='w-50 mb-4 rounded ps-2' type="text" name="name" id="name" placeholder='Your Name' required />
+                <br />
+                <input className='w-50 mb-4 rounded ps-2' onChange={handleEmailChange} type="email" name="email" id="email" placeholder='Your Email' required />
+                <br />
+                <input className='w-50 mb-4 rounded ps-2' onBlur={handlePasswordBlur} type="password" name="password" id="password" placeholder='Your Password' required />
+                <br />
+                <input className='btn btn-primary' type="submit" value="Register" />
+            </form>
+            <p><small>Already have an account? Please <Link to="/login">Login</Link> </small></p>
+            <p className='text-danger'>{error}</p>
+            <p className='text-success'>{success}</p>
         </div>
     );
 };
